@@ -1,0 +1,22 @@
+I/O PS is small linux tool written in PHP 5.x that helps you to find processes with high I/O.
+
+The tool is probably similar to iotop. However iotop requires Python version that is not available in many Linux distributions, especially RedHat and CentOS 5.x
+
+I/O PS rely on I/O accounting information that may be found in Linux Kernel 2.6.12(?)+.
+The info may be accessed in /proc/<pid>/io.
+
+However kernel I/O info is not only disk I/O, but include all kind of I/O.
+On big webservers you may find that Apache is the process that consume most I/O.
+
+The way tool works is to collect I/O info for all runing processes, then it delays $PAUSE seconds and collects same information again.
+After that it finds the difference between two "snapshots" and print first $COUNT processes at the output.
+
+The tool also prints first $NAMELEN characters of the process name - similar to ps command.
+
+The tool is completly read-only and must be started as root.
+
+Author: Nikolay Mihaylov
+E-Mail: nmmm at nmmm.nu
+Distribution: GPL
+Commersial licence also available on request.
+
