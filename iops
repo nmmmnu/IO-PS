@@ -1,0 +1,121 @@
+#!/usr/local/bin/php
+<?
+
+$PAUSE   = 1;
+$COUNT   = 50;
+$NAMELEN = 40;
+
+function snapshot(){
+	$data = array();
+
+	foreach(glob("/proc/*/io") as $f){
+		$pidx  = explode("/", $f);
+		$pid   = $pidx[2];
+
+		// "self" pid
+		if ( (int) $pid == 0)
+			continue;
+
+
+
+		$linex = file($f);
+
+		$d1 = array();
+
+		foreach($linex as $line){
+			@list($key, $value) = @explode(":", $line);
+			$key   = trim($key);
+
+			if ($key == "rchar")
+				$d1["r"] = (int) trim($value);
+
+			if ($key == "wchar")
+				$d1["w"] = (int) trim($value);
+
+		}
+
+
+
+		$d1["t"] = $d1["r"] + $d1["w"];
+
+
+
+		$linex = file_get_contents("/proc/$pid/cmdline");
+
+//		print_r($linex); exit;
+
+		global $NAMELEN;
+
+		$d1["n"] = substr($linex, 0, $NAMELEN - 1);
+
+		$data[$pid] = $d1;
+	}
+
+	return $data;
+}
+
+
+
+function usf($a, $b){
+	if ($a["t"] == $b["t"])
+		return 0;
+
+	return $a["t"] < $b["t"];
+}
+
+function process($d1, $d2){
+	$out = array();
+
+
+	foreach( array_intersect( array_keys($d1), array_keys($d2) ) as $pid ){
+		$out[$pid] = array(
+				"p" => $pid								,
+				"n" => $d1[$pid]["n"]					,
+
+				"r" => $d2[$pid]["r"] - $d1[$pid]["r"]	,
+				"w" => $d2[$pid]["w"] - $d1[$pid]["w"]	,
+				"t" => $d2[$pid]["t"] - $d1[$pid]["t"]
+		);
+	}
+
+//	print_res($out); exit;
+
+	usort($out, "usf");
+
+
+	return $out;
+}
+
+
+
+function print_res($d, $count){
+	global $NAMELEN;
+	foreach($d as $line){
+		echo sprintf(
+			"%8d : %8d read, %8d write, %8d total %-${NAMELEN}s \n",
+
+			$line["p"]	,
+			$line["r"]	,
+			$line["w"]	,
+			$line["t"]	,
+			$line["n"]
+		);
+
+		if ($count-- <= 1)
+			return;
+	}
+}
+
+
+
+$d1 = snapshot();
+sleep($PAUSE);
+$d2 = snapshot();
+
+
+
+$d3 = process($d1, $d2);
+
+
+
+print_res($d3, $COUNT);
